@@ -8,3 +8,4 @@ networkWeightsCNN3.json
 networkWeightsCNN4.json
 savedNetwork*.json
 src/display_filters.js
+package-lock.json
