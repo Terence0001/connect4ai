@@ -33,6 +33,6 @@
     "flow stop": "flow stop",
     "flow status": "flow status",
     "flow coverage": "flow coverage",
-    "train": "./node_modules/flow-remove-types/flow-remove-types src/ --out-dir dest/;node dest/index.js;"
+    "train": "flow-remove-types src/ --out-dir dest/ && node dest/index.js"
   }
 }

@@ -8,7 +8,7 @@ const fs = require('fs');
 // type of neural network to train
 const NETWORK_TYPE = 'CNN';
 // number of games to play
-const LEARN_TIMES = 10000;
+const LEARN_TIMES = 100000;
 // learningRate is progressively decreased with the number of games until
 // the final value LR_INIT/LR_FINAL_FRACTION
 const LR_INIT = 0.0001;
