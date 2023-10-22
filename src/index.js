@@ -5,10 +5,17 @@ const NeuralNetwork = require('./NeuralNetwork');
 const fs = require('fs');
 
 // -------------- PARAMETERS ---------------- //
+const metrics = {
+  accuracies: [],
+  dynamicReward: [],
+  losses: [],
+  rewards: [],
+};
+
 // type of neural network to train
 const NETWORK_TYPE = 'CNN';
 // number of games to play
-const LEARN_TIMES = 100000;
+const LEARN_TIMES = 1000;
 // learningRate is progressively decreased with the number of games until
 // the final value LR_INIT/LR_FINAL_FRACTION
 const LR_INIT = 0.0001;
@@ -40,19 +47,45 @@ const NETWORK_CONFIG = {
 }
 // ------------------------------------------ //
 
+// Définition de la fonction calculateReward en dehors de la boucle for
+function calculateReward(winnerPlaysLength, loserPlaysLength) {
+  let reward = REWARD; // REWARD est une constante que vous avez déjà définie
+
+  // Vous pouvez ajouter des conditions pour ajuster la récompense
+  if (winnerPlaysLength < 10) {
+    reward += 20; // Bonus pour une victoire rapide
+  }
+
+  if (loserPlaysLength > 15) {
+    reward += 10; // Bonus pour avoir battu un adversaire qui a bien résisté
+  }
+  return reward;
+}
+
+
 const myNetwork = NeuralNetwork.initialize(NETWORK_TYPE, NETWORK_CONFIG);
 const myTrainer = NeuralNetwork.getTrainer(NETWORK_TYPE, myNetwork);
 
 for (let i = 0; i < LEARN_TIMES; i++) {
+  const accuracy = NeuralNetwork.evaluate(NETWORK_TYPE, myNetwork);
+  metrics.accuracies.push(accuracy);
   // display info once every 1/100
   if (i % (LEARN_TIMES / 100) === 0) console.log(i);
   const display = (i % (LEARN_TIMES / 100) === 0) ? true : false;
 
   // change ratio between exploration and exploitation
   const epsilon = EPSILON_INIT + (EPSILON_FINAL - EPSILON_INIT) * i / LEARN_TIMES;
-
+  // metrics.epsilons.push(epsilon);
+  
+  // // Supposons que vous ayez une fonction pour calculer la perte et la récompense
+  // const loss = NeuralNetwork.calculateLoss(NETWORK_TYPE, myNetwork);
+  
+  // Mettez à jour les métriques
+  // metrics.losses.push(loss);
+  
   // play a game of connect4
   const gameInfo = Play.playGame(NETWORK_TYPE, epsilon, myNetwork, display);
+  
 
   // get game info back
   const winnerBoardStates = gameInfo.winnerBoardStates;
@@ -62,10 +95,16 @@ for (let i = 0; i < LEARN_TIMES; i++) {
   const winnerPlaysLength = winnerPlays.length;
   const loserPlaysLength = loserPlays.length;
 
+  const reward = calculateReward(winnerPlaysLength, loserPlaysLength);
+  metrics.rewards.push(reward);
+
   // adapt learning rate
   const learningRate = LR_INIT / (1 + (LR_FINAL_FRACTION - 1) * i / LEARN_TIMES);
 
   if (winnerBoardStates.length !== 0) {
+    const dynamicReward = calculateReward(winnerPlaysLength, loserPlaysLength);
+    // Ajouter la récompense dynamique à l'objet metrics
+    metrics.dynamicReward.push(dynamicReward);
     // backpropagate full reward for the final winner play
     NeuralNetwork.backPropagate(
       NETWORK_TYPE,
@@ -101,7 +140,7 @@ for (let i = 0; i < LEARN_TIMES; i++) {
       )
     } else {
       // backpropagate punishment for the final loser play if he permitted it
-      NeuralNetwork.backPropagate(
+      const loss = NeuralNetwork.backPropagate(
         NETWORK_TYPE,
         myTrainer,
         loserBoardStates[loserPlaysLength - 1],
@@ -109,6 +148,8 @@ for (let i = 0; i < LEARN_TIMES; i++) {
         loserPlays[loserPlaysLength - 1],
         learningRate
       )
+      // Ajouter la perte à l'objet metrics
+      metrics.losses.push(loss)
     }
   }
   if (i % (LEARN_TIMES / 100) === 0) {
@@ -117,10 +158,9 @@ for (let i = 0; i < LEARN_TIMES; i++) {
 }
 
 // write final weights
-const networkWeights = myNetwork && myNetwork.toJSON();
-const json = JSON.stringify(networkWeights);
+// const networkWeights = myNetwork && myNetwork.toJSON();
+// const metricsJson = JSON.stringify(metrics);
 
-fs.writeFile(`networkWeights${NETWORK_TYPE}.json`, json, 'utf8', (err) => {
-  if (err) throw err;
-  console.log('The file has been saved!');
-});
+fs.writeFileSync('trainingMetrics.json', JSON.stringify(metrics));
+const networkJSON = myNetwork.toJSON();
+fs.writeFileSync('modelWeights.json', JSON.stringify(networkJSON));

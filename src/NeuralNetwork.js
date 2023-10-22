@@ -145,3 +145,11 @@ exports.evaluate = (
     return Helper.evaluateLearning(myNetwork);
   }
 }
+
+exports.getWeights = (networkType: string, myNetwork: any) => {
+  if (networkType === 'CNN') {
+    return myNetwork.toJSON();
+  } else if (networkType === 'NN') {
+    return myNetwork.toJSON();
+  }
+};
